@@ -1,0 +1,338 @@
+= Instructions
+
+:idprefix:
+:idseparator: -
+:sectlinks:
+:sectnums:
+
+:uri-repo: https://github.com/oracle-terraform-modules/terraform-oci-oke
+
+:uri-rel-file-base: link:{uri-repo}/blob/master
+:uri-rel-tree-base: link:{uri-repo}/tree/master
+
+:uri-docs: {uri-rel-file-base}/docs
+
+:uri-topology: {uri-docs}/topology.adoc
+:uri-changelog: {uri-rel-file-base}/CHANGELOG.adoc
+:uri-contribute: {uri-rel-file-base}/CONTRIBUTING.adoc
+:uri-contributors: {uri-rel-file-base}/CONTRIBUTORS.adoc
+
+:uri-configuration: {uri-docs}/configuration.adoc
+:uri-license: {uri-rel-file-base}/LICENSE.txt
+:uri-kubernetes: https://kubernetes.io/
+:uri-networks-subnets-cidr: https://erikberg.com/notes/networks.html
+:uri-oci: https://cloud.oracle.com/cloud-infrastructure
+:uri-oci-documentation: https://docs.cloud.oracle.com/iaas/Content/home.htm
+:uri-oci-instance-principal: https://docs.cloud.oracle.com/iaas/Content/Identity/Tasks/callingservicesfrominstances.htm
+:uri-oci-kms: https://docs.cloud.oracle.com/iaas/Content/KeyManagement/Concepts/keyoverview.htm
+:uri-oci-manage-dynamic-groups: https://docs.cloud.oracle.com/iaas/Content/Identity/Tasks/managingdynamicgroups.htm
+:uri-oci-manage-policies: https://docs.cloud.oracle.com/iaas/Content/Identity/Tasks/managingpolicies.htm
+:uri-oci-ocir: https://docs.cloud.oracle.com/iaas/Content/Registry/Concepts/registryoverview.htm
+:uri-oci-secret: https://docs.cloud.oracle.com/en-us/iaas/Content/KeyManagement/Tasks/managingsecrets.htm
+:uri-oci-authtoken: https://docs.cloud.oracle.com/iaas/Content/Registry/Tasks/registrygettingauthtoken.htm
+:uri-oci-waf: https://docs.cloud.oracle.com/en-us/iaas/Content/WAF/Concepts/overview.htm
+:uri-oci-waf-certificate: https://docs.cloud.oracle.com/en-us/iaas/Content/WAF/Concepts/gettingstarted.htm#upload
+:uri-oci-waf-dns: https://docs.cloud.oracle.com/en-us/iaas/Content/WAF/Concepts/gettingstarted.htm#update
+:uri-oci-waf-policy: https://docs.cloud.oracle.com/en-us/iaas/Content/WAF/Concepts/gettingstarted.htm#create
+:uri-oci-waf-tutorial: https://www.youtube.com/watch?v=CfoK9JjBxts
+:uri-oke: https://docs.cloud.oracle.com/iaas/Content/ContEng/Concepts/contengoverview.htm
+:uri-oracle: https://www.oracle.com
+:uri-prereqs: {uri-docs}/prerequisites.adoc
+:uri-quickstart: {uri-docs}/quickstart.adoc
+
+:uri-terraform: https://www.terraform.io
+:uri-terraform-cidrsubnet-desconstructed: http://blog.itsjustcode.net/blog/2017/11/18/terraform-cidrsubnet-deconstructed/
+:uri-terraform-oci: https://www.terraform.io/docs/providers/oci/index.html
+:uri-terraform-oke-sample: https://github.com/terraform-providers/terraform-provider-oci/tree/master/examples/container_engine
+:uri-terraform-options: {uri-docs}/terraformoptions.adoc
+:uri-install-kubectl: https://kubernetes.io/docs/tasks/tools/install-kubectl/
+:uri-metricserver: https://kubernetes.io/docs/tasks/debug-application-cluster/resource-metrics-pipeline/#metrics-server
+:uri-k8s-dashboard: http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/
+:uri-psp: https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Tasks/contengusingpspswithoke.htm#Using_Pod_Security_Polices_with_Container_Engine_for_Kubernetes
+
+. link:#assumptions[Assumptions]
+. link:#kms-integration[KMS Integration]
+. link:#creating-the-oke-cluster[Creating the OKE Cluster]
+. link:#adding-the-bastion-host[Adding the bastion host]
+. link:#using-the-bastion-host[Using the bastion host]
+. link:#adding-the-operator-host[Adding the operator host]
+.. link:#upgrading-the-operator-host[Upgrading the operator host]
+. link:#using-the-operator-host[Using the operator host]
+.. link:#enabling-instance_principal-on-the-operator-host[Enabling instance_principal on the operator host]
+.. link:#disabling-instance_principal-on-the-operator-host[Disabling instance_principal on the operator host]
+.. link:#recommendations-for-using-instance_principal[Recommendations for using instance_principal]
+. link:#interacting-with-the-oke-cluster[Interacting with the OKE Cluster locally]
+. link:#creating-a-secret-for-ocir[Creating a Secret for OCIR]
+. link:#installing-calico[Installing Calico]
+. link:#installing-kubernetes-metrics-server[Installing Kubernetes Metrics Server]
+. link:#scaling-the-number-of-node-pools[Scaling the number of node pools]
+. link:#accessing-the-kubernetes-dashboard[Accessing the Kubernetes dashboard]
+. link:#destroying-the-cluster[Destroying the cluster]
+. link:#creating-a-service-account-for-cicd-tools[Creating a service account for CI/CD tools]
+. link:#enabling-waf[Monitor and Protect your application using OCI WAF]
+. link:#enabling-podsecuritypolicy[Enabling PodSecurityPolicy Admissions Controller]
+
+=== Assumptions
+
+This section assumes you have completed the following:
+
+. all the {uri-prereqs}[pre-requisites]
+. all the required {uri-configuration}[configuration]
+
+=== KMS Integration
+
+If you wish to use {uri-oci-kms}[OCI KMS] to encrypt Kubernetes secrets, the following is required:
+
+* the Terraform user must have the following rights
+** {uri-oci-manage-dynamic-groups}[manage dynamic groups]
+** {uri-oci-manage-policies}[manage policies in root tenancy]
+* link:#adding-the-bastion-host[bastion must be enabled]
+* link:#enabling-instance_principal-on-the-operator-host[operator instance_principal must be enabled]
+* use_encryption must be set to _true_
+* existing_key_id must be provided
+
+=== Creating the OKE Cluster
+
+Initialize a working directory containing Terraform configuration files:
+
+----
+terraform init
+----
+
+Run the plan and apply commands to create OKE cluster and other components.
+----
+terraform plan
+terraform apply
+----
+
+You can create a Kubernetes cluster with the latest version of Kubernetes available in OKE using this terraform script. By default the kubernetes_version parameter in terraform.tfvars.example is set as "LATEST". Refer to {uri-terraform-options}#oke[Terraform Options] for other available parameters for OKE.
+
+Use the parameter *cluster_name* to change the name of the cluster as per your needs.
+
+
+=== Adding the bastion host
+
+If you want to use bastion host, set the parameter *bastion_enabled* to *true* in terraform.tfvars. Refer to {uri-terraform-options}#bastion-host[Bastion Host] for other available bastion related parameters.
+
+
+=== Using the bastion host
+
+****
+*Assumption: you have set the bastion_enabled parameter to true in terraform.tfvars*
+****
+
+Once the terraform apply is successful you will get the bastion_public_ip as output and also a ssh command. You can also run the below command to get the output:
+
+----
+terraform output
+----
+
+You can then copy the ssh_to_bastion command, paste and run it in a terminal.
+
+=== Adding the operator host
+
+The operator host is used to minimize local dependencies such as oci-cli, kubectl and so on. 
+
+If you want to use the operator host, set the parameter *operator_enabled* to *true* in terraform.tfvars. Refer to {uri-terraform-options}#operator-host[Admin Host] for other available bastion related parameters.
+
+==== Upgrading the operator host
+
+There is 1 additional parameter for the operator:
+
+* operator_package_upgrade
+
+_operator_package_upgrade_ will upgrade the operator compute packages on first boot. 
+
+****
+N.B. It is good and recommended practice to upgrade your package host to the latest packages to minimize the possibility of vulnerabilities. However, it will also take slightly longer before the package host is available.
+****
+
+=== Using the operator host
+
+****
+*Assumption: you have set the operator_enabled parameter to true in terraform.tfvars*
+****
+
+Once the terraform apply is successful you will get the operator_private_ip as output and also a ssh command. You can also run the below command to get the output:
+
+----
+terraform output
+----
+
+You can then copy the ssh_to_operator command, paste and run it in a terminal.
+
+==== Enabling instance_principal on the operator host
+{uri-oci-instance-principal}[instance_principal] is an IAM service feature that enables instances to be authorized actors (or principals) to perform actions on service resources. Each compute instance has its own identity, and it authenticates using the certificates that are added to it. These certificates are automatically created, assigned to instances and rotated, preventing the need for you to distribute credentials to your hosts and rotate them.
+
+Any user who has access to the instance (who can SSH to the instance), automatically inherits the privileges granted to the instance. Before you enable this feature, ensure that you know who can access it, and that they should be authorized with the permissions you are granting to the instance.
+
+By default, this feature is *_disabled_*. However, it is *_required_* at the time of cluster creation *_if_* you wish to enable link:#kms-integration[KMS Integration], calico, metricserver or creating the OCIR secret.
+
+When you enable this feature, by default, the operator host will have privileges to all resources in the compartment. If you are enabling it for link:#kms-integration[KMS Integration], the operator host will also have rights to create policies in the root tenancy. 
+
+You can also turn on and off the feature at any time without impact on the operator or the cluster.
+
+To enable, set operator_instance_principal to true:
+
+----
+operator_instance_principal = "true"
+----
+
+and verify:
+
+----
+oci network vcn list --compartment-id <compartment-id>
+----
+
+==== Disabling instance_principal on the operator host
+
+. Set operator_instance_principal to false in terraform.tfvars
+
++
+----
+operator_instance_principal = false
+----
+
+. Run terraform apply again:
+
++
+----
+terraform apply
+----
+
+==== Recommendations for using instance_principal
+
+. Do not enable instance_principal if you are not using link:#kms-integration[KMS Integration] or calico
+. Enable instance_principal *_if and only if_* you are using link:#kms-integration[KMS Integration], calico, metricserver or creating the OCIR secret.
+. Disable instance_principal once the cluster is created
+
+=== Interacting with the OKE Cluster
+
+kubectl installed on the operator host by default and the kubeconfig file is set in the default location (~/.kube/config) so you don't need to set the KUBECONFIG environment variable every time you log in to the operator host. 
+
+****
+N.B. In order for kubeconfig to be created on the operator host, you need to link:#enabling-instance_principal-on-the-operator-host[enable instance_principal on the operator host].
+****
+
+An alias "*k*" will be created for kubectl on the operator host. 
+
+If you would like to use kubectl locally, {uri-install-kubectl}[install kubectl]. Then, set the KUBECONFIG to the config file path. The kubeconfig file will be saved generated locally under the folder *generated*:
+
+----
+export KUBECONFIG=generated/kubeconfig
+----
+
+****
+*Ensure you install the same kubectl version as the OKE Kubernetes version for compatibility.*
+****
+
+=== Creating a Secret for OCIR
+
+{uri-oci-ocir}[Oracle Cloud Infrastructure Registry] is a highly available private container registry service for storing and sharing container images within the same regions as the OKE Cluster. Use the following rules to determine if you need to create a Kubernetes Secret for OCIR:
+
+* If your container repository is public, you do not need to create a secret. 
+* If your container repository is private, you need to create a secret before OKE can pull your images from the private repository. 
+
+If you plan on creating a Kubernetes Secret for OCIR, you must first {uri-oci-authtoken}[create an Auth Token]. Copy and temporarily save the value of the Auth Token.
+
+You must then {uri-oci-secret}[create a Secret in OCI Vault to store] the value of the Auth Token in it. 
+
+Finally, assign the Secret OCID to *secret_id* in terraform.tfvars. Refer to {uri-terraform-options}#ocir[OCIR parameters] for other parameters to be set.
+
+=== Installing Calico 
+
+Calico enables network policy in Kubernetes clusters. To install calico set the parameter *calico_enabled = true* in terraform.tfvars. By default its set to false. Refer to {uri-terraform-options}#calico[Calico parameters] for other available parameters.
+
+=== Installing Kubernetes Metrics Server
+
+{uri-metricserver}[Kubernetes Metrics Server] can be installed by setting the parameter *metricserver_enabled = true* in terraform.tfvars. By default, the latest version is installed in kube-system namespace. This is required if you need to use Horizontal Pod Autoscaling.
+
+=== Scaling the node pools
+
+There are 2 ways you can scale the node pools:
+
+* add more node pools
+* increase the number of workers in a subnet per node pool.
+
+Node pools can be added and removed, their size and boot volume size can be updated as well. After each change, run ```terraform apply```. 
+
+Scaling changes to the number and size of node pools are immediate after changing the parameters and running ```terraform apply```. The changes to boot volume size will only be effective in newly created nodes _after_ the change is completed.
+
+Set the parameter *node_pools* to the desired quantities to scale the node pools accordingly. Refer to {uri-topology}#node-pools[Nodepool].
+
+=== Accessing the Kubernetes dashboard
+
+By default, the Kubernetes dashboard is now disabled. To enable it, set the *dashboard_enabled = true* _before_ creating the cluster. The dashboard will then be deployed.
+
+In a terminal window, run the command:
+
+----
+kubectl proxy
+----
+
+Open a browser and go to {uri-k8s-dashboard}[Kubernetes Dashboard] to display the Kubernetes Dashboard.
+
+=== Destroying the cluster
+
+Run the below command to destroy the infrastructure created by terraform:
+
+----
+terraform destroy
+----
+
+****
+*Only infrastructure created by terraform will get destroyed.*
+****
+
+
+=== Creating a service account for CI/CD tools
+
+OKE now uses Kubeconfig v2 which means the default token has a limited lifespan. In order to allow CI/CD tools to deploy to OKE, a service account must be created.
+
+Set the *create_service_account = true* and you can name the other parameters as appropriate:
+
+----
+create_service_account = true
+
+service_account_name = "kubeconfigsa"
+
+service_account_namespace = "kube-system"
+
+service_account_cluster_role_binding = ""
+----
+
+=== Enabling WAF
+
+You can monitor and protect the load balancers created by OKE using {uri-oci-waf}[OCI Web Application Firewall].
+
+If you would like to monitor and protect your application with OCI Web Application firewall, set *_enable_waf = true_*.
+
+You'll then need to:
+
+. {uri-oci-waf-policy}[create a WAF Policy]
+. {uri-oci-waf-dns}[Update your DNS records to enable WAF]
+
+You may also need to {uri-oci-waf-certificate}[upload your certificate and key].
+
+Follow this {uri-oci-waf-tutorial}[tutorial] on WAF to configure your policy and update your DNS record.
+
+****
+N.B. 
+
+. It is good and recommended practice to monitor and protect your application using WAF.
+. WAF protection currently only works if you use a public load balancer as a front end to your services. This means that services deployed as NodePort services are currently *not protected* by WAF.
+****
+
+=== Enabling PodSecurityPolicy
+
+If you would like to enable the PodSecurityPolicy Admission Controller, set 
+
+[source]
+admission_controller_options = {
+  PodSecurityPolicy = true
+}
+
+Ensure you also read {uri-psp}[the documentation] before enabling it. 
+
+****
+N.B. This field is updatable. You can set to `true` and `false` and run terraform apply again.

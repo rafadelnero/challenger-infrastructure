@@ -1,0 +1,201 @@
+# Identity and access parameters
+
+api_fingerprint = ""
+
+api_private_key_path = ""
+
+region = "us-phoenix-1"
+
+tenancy_id = ""
+
+user_id = ""
+
+# general oci parameters
+compartment_id = ""
+
+label_prefix = "dev"
+
+# ssh keys
+ssh_private_key_path = ""
+
+ssh_public_key_path = ""
+
+# networking
+
+netnum = {
+  bastion    = 32
+  int_lb     = 16
+  operator   = 33
+  pub_lb     = 17
+  workers    = 1
+}
+
+newbits = {
+  bastion    = 13
+  lb         = 11
+  operator   = 13
+  workers    = 2
+}
+
+vcn_cidr = "10.0.0.0/16"
+
+vcn_dns_label = "oke"
+
+vcn_name = "oke vcn"
+
+
+# bastion
+
+bastion_access = "ANYWHERE"
+
+bastion_enabled = true
+
+bastion_image_id = "Autonomous"
+
+bastion_notification_enabled = false
+
+bastion_notification_endpoint = "<email_address>"
+
+bastion_notification_protocol = "EMAIL"
+
+bastion_notification_topic= "bastion_server_notification"
+
+bastion_package_upgrade = false
+
+bastion_shape = "VM.Standard.E2.1"
+
+bastion_timezone = "Australia/Sydney"
+
+operator_enabled = true
+
+operator_image_id = "Oracle"
+
+operator_instance_principal = true
+
+operator_notification_enabled = false
+
+operator_notification_endpoint = ""
+
+operator_notification_protocol = "EMAIL"
+
+operator_notification_topic= "operator_server_notification"
+
+operator_package_upgrade = true
+
+operator_shape   = "VM.Standard.E2.1"
+
+operator_timezone= "Australia/Sydney"
+
+# availability_domains
+
+availability_domains = {
+  bastion = 1
+  operator  = 1
+}
+
+# tags
+
+tags = {
+  # vcn, bastion and operator tags are required
+  # add more tags in each as desired
+  vcn = {
+    # department = "finance"
+    environment = "dev"
+  }
+  bastion = {
+    # department  = "finance"
+    environment = "dev"
+    role        = "bastion"
+  }
+  operator = {
+    # department = "finance"
+    environment = "dev"
+    role        = "operator"
+  }
+}
+
+# oke
+
+admission_controller_options = {
+  PodSecurityPolicy = false
+}
+
+allow_node_port_access = false
+
+allow_worker_ssh_access = false
+
+cluster_name = "oke"
+
+check_node_active = "none"
+
+dashboard_enabled = false
+
+kubernetes_version = "v1.17.9"
+
+node_pools = {
+  np1 = {shape="VM.Standard.E3.Flex",ocpus=2,node_pool_size=2,boot_volume_size=150}
+  np2 = {shape="VM.Standard.E2.2",node_pool_size=2,boot_volume_size=150}
+  np3 = {shape="VM.Standard.E2.2",node_pool_size=1}
+}
+
+node_pools_to_drain = [ "np1", "np2", "np3" ] 
+
+nodepool_drain = false
+
+nodepool_upgrade_method = "out_of_place"
+
+node_pool_name_prefix = "np"
+
+node_pool_image_id = "none"
+
+node_pool_os = "Oracle Linux"
+
+node_pool_os_version = "7.8"
+
+pods_cidr = "10.244.0.0/16"
+
+services_cidr = "10.96.0.0/16"
+
+worker_mode = "private"
+
+# oke load balancers
+lb_subnet_type = "public"
+
+preferred_lb_subnets = "public"
+
+public_lb_ports = [80, 443]
+
+waf_enabled = false
+
+# ocir
+email_address = ""
+
+secret_id = "none"
+
+secret_name = "ocirsecret"
+
+tenancy_name = ""
+
+username = ""
+
+# calico
+calico_enabled = false
+
+calico_version = "3.12"
+
+#metrics server
+metricserver_enabled = false
+
+# kms
+use_encryption = false
+
+existing_key_id = ""
+
+# service account
+create_service_account = true
+
+service_account_name = "kubeconfigsa"
+
+service_account_namespace = "kube-system"
+
+service_account_cluster_role_binding = "cluster-admin"
